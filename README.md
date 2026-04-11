@@ -4,7 +4,7 @@ This repository is a **small, explicit baseline** for research-style work at the
 
 **What it does (two stages):**
 
-1. **Prediction / data modeling:** pooled supervised regression (Ridge on scaled lagged returns) to produce a vector of predicted next-period returns \hat{\mu}.
+1. **Prediction / data modeling:** **per-asset** supervised regression (one Ridge + scaler per stock on its own lagged returns) to build a vector of predicted next-period returns \hat{\mu}.
 2. **Portfolio theory / optimization:** mean–variance-style problem on the simplex (long-only, fully invested), using an estimated covariance \Sigma. **CVXPY** encodes the same problem as a **convex QP** (reference solution via OSQP/SCS). **Variant 2 flavor** comes from a **low-rank PSD approximation** of \Sigma; **Variant 3 flavor** from comparing **CVXPY**, **SLSQP**, **projected gradient**, and **Frank–Wolfe** (with objective gaps vs the CVXPY optimum).
 
 Synthetic returns are simulated by default so the pipeline runs with **no external data files**.
@@ -47,7 +47,7 @@ They are **standard building blocks**, but **several choices are deliberately si
 
 | Piece           | What we do                                | Caveat                                                                 |
 | --------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
-| Returns model   | Ridge on lags, pooled across assets/dates | Strong overlap between train rows; not purged CV; \hat{\mu} is fragile |
+| Returns model   | Ridge on lags, **one model per asset** (train = that asset’s dates in the train window) | No purged CV; assets with too few train rows skip fitting (`ridge_min_train_rows`) |
 | Covariance      | Ledoit–Wolf shrinkage on a rolling window | Window stationarity assumed; correlation regime shifts hurt            |
 | Low-rank \Sigma | Truncated eigen + small diagonal ridge    | A **surrogate**, not a calibrated factor model                         |
 | Optimization    | Smooth MV on the simplex                  | No transaction costs in the objective; constraints are minimal         |
@@ -186,7 +186,7 @@ python -m pip install -e ".[dev]"
 **Where to change behavior (single source of truth):**
 
 - **Hyperparameters / experiment shape:** `src/portfolio_optim/config.py`
-- **Prediction model:** `ml/models.py` (swap Ridge for another sklearn regressor; keep the pipeline interface)
+- **Prediction model:** `ml/models.py` (per-asset `Pipeline`; swap Ridge or fit a shared architecture per asset)
 - **Covariance structure:** `portfolio/covariance.py` (add factor models, different shrinkage)
 - **Optimizers / diagnostics:** `portfolio/solvers.py` (CVXPY solver choice / tolerances, FW gap, adaptive steps, stopping rules)
 - **End-to-end protocol:** `experiments/run_baseline.py` (purging, embargo, costs, benchmark portfolios)

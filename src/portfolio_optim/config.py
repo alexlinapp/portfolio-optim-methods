@@ -16,6 +16,7 @@ class BaselineConfig:
     val_frac: float = 0.2
     low_rank_rank: int = 5
     ridge_alpha: float = 1.0
+    ridge_min_train_rows: int = 20
     max_iter_pgd: int = 2000
     max_iter_fw: int = 2000
     pgd_step_scale: float = 0.5

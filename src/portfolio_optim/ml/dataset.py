@@ -9,12 +9,12 @@ def build_supervised_dataset(
     lookback: int,
 ) -> tuple[np.ndarray, np.ndarray, pd.Index]:
     """
-    Predict next-period cross-sectional returns from stacked lagged features.
+    Build supervised rows: one row per (date, asset).
 
-    For each time t >= lookback, label y_t = r_t (vector across assets),
-    features X_t = vec([r_{t-1}, ..., r_{t-lookback}]) per asset — here we use
-    a single pooled model: each (date, asset) is one row with that asset's
-    lagged window as features (same for all assets at that date).
+    Features are that asset's own lag-1 … lag-lookback returns; the label is its
+    next-day return. **Training** is per-asset (separate Ridge per column) in
+    ``ml.models.fit_return_predictors_by_asset`` — rows are only stacked here
+    for convenient masking by date split.
     """
     if lookback < 1:
         raise ValueError("lookback must be >= 1")

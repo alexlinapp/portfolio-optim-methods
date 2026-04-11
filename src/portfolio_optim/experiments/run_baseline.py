@@ -13,7 +13,11 @@ from portfolio_optim.data.generate import simulate_linear_factor_returns
 from portfolio_optim.data.splits import time_series_split_indices
 from portfolio_optim.evaluation.metrics import mean_turnover, next_period_portfolio_return
 from portfolio_optim.ml.dataset import build_supervised_dataset
-from portfolio_optim.ml.models import fit_return_predictor, predict_returns
+from portfolio_optim.ml.models import (
+    fit_return_predictors_by_asset,
+    predict_returns,
+    predict_rows_by_asset,
+)
 from portfolio_optim.portfolio.covariance import ledoit_wolf_shrinkage, low_rank_psd
 from portfolio_optim.portfolio.objectives import mean_variance_value
 from portfolio_optim.portfolio.solvers import (
@@ -59,17 +63,21 @@ def run_experiment(
 
     X, y, mindex = build_supervised_dataset(returns, cfg.lookback)
 
-    return X, y, mindex
+    models_by_asset = fit_return_predictors_by_asset(
+        X,
+        y,
+        mindex,
+        train_idx,
+        cfg.ridge_alpha,
+        min_train_rows=cfg.ridge_min_train_rows,
+    )
 
     dates_all = mindex.get_level_values("date")
-    train_mask = np.isin(dates_all, train_idx)
-    model = fit_return_predictor(X[train_mask], y[train_mask], cfg.ridge_alpha)
-
     val_mask = np.isin(dates_all, val_idx)
     predv_val: np.ndarray | None = None
     if val_mask.any():
         yv = y[val_mask]
-        predv_val = model.predict(X[val_mask])
+        predv_val = predict_rows_by_asset(models_by_asset, X, mindex, val_mask)
         val_rmse = float(np.sqrt(np.mean((yv - predv_val) ** 2)))
     else:
         val_rmse = float("nan")
@@ -108,7 +116,7 @@ def run_experiment(
             continue
         sigma_full = ledoit_wolf_shrinkage(R)
         sigma_lr = low_rank_psd(sigma_full, cfg.low_rank_rank, ridge=1e-8)
-        mu_hat = predict_returns(model, returns, cfg.lookback, dt).to_numpy(dtype=float)
+        mu_hat = predict_returns(models_by_asset, returns, cfg.lookback, dt).to_numpy(dtype=float)
         if output_dir is not None:
             row: dict = {"date": dt}
             for c, v in zip(returns.columns, mu_hat, strict=True):
