@@ -4,7 +4,7 @@ from typing import TypeAlias
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -17,6 +17,17 @@ def fit_return_predictor(X_train: np.ndarray, y_train: np.ndarray, alpha: float)
         steps=[
             ("scale", StandardScaler()),
             ("ridge", Ridge(alpha=alpha, fit_intercept=True)),
+        ]
+    )
+    model.fit(X_train, y_train)
+    return model
+
+def fit_return_ElasticNet(X_train: np.ndarray, y_train: np.ndarray, alpha: float, l1_ratio: float = 0.5) -> Pipeline:
+    """Ridge on scaled features — one model (used internally per asset)."""
+    model = Pipeline(
+        steps=[
+            ("scale", StandardScaler()),
+            ("ridge", ElasticNet(alpha=alpha, l1_ratio=l1_ratio)),
         ]
     )
     model.fit(X_train, y_train)
@@ -47,7 +58,8 @@ def fit_return_predictors_by_asset(
         n = int(np.sum(m))
         if n < min_train_rows:
             continue
-        models[str(asset)] = fit_return_predictor(X[m], y[m], alpha)
+        print(f"Fitting asset: {asset}")
+        models[str(asset)] = fit_return_ElasticNet(X[m], y[m], alpha, 0.5) #fit_return_predictor(X[m], y[m], alpha)
     return models
 
 
