@@ -80,12 +80,25 @@ Optional **dev** extras (see `pyproject.toml`): `pytest`, `ruff` — only if you
 
 These are **typical references** to anchor the baseline; they are not endorsements that this repo implements every detail.
 
+If you are **reading `portfolio/solvers.py`**, start with **Optimization algorithms (`solvers.py`)** below — that file stays light on prose; citations live here.
+
+### Optimization algorithms (`solvers.py`)
+
+| What in code | Idea | Where to read |
+|--------------|------|----------------|
+| **`_project_simplex`** | Euclidean projection onto \(\{x \ge 0,\ \sum x = 1\}\): sort + threshold (\(O(n\log n)\)). | **Duchi, Shalev-Shwartz, Singer, Chandra (2008)**, §3 — *Efficient Projections onto the ℓ1-Ball for Learning in High Dimensions* ([PDF](https://stanford.edu/~jduchi/projects/DuchiShSiCh08.pdf)); case \(z=1\) is the probability simplex. **Wang & Carreira-Perpiñán (2013)** — short proof: [arXiv:1309.1541](https://arxiv.org/abs/1309.1541) ([PDF](https://arxiv.org/pdf/1309.1541.pdf)). Walkthrough: [Statistical Odds & Ends](https://statisticaloddsandends.wordpress.com/2022/12/16/on-log-n-algorithm-for-euclidean-projection-onto-a-simplex/). |
+| **`projected_gradient_mean_variance`** | Gradient step on \(f(w)\), then project onto simplex. | Convex optimization texts on **projected gradient** (e.g. Nesterov, *Introductory Lectures on Convex Optimization*; Boyd & Vandenberghe, *Convex Optimization*). Step size uses \(\lambda_{\max}(\Sigma)\) and \(\gamma\). |
+| **`frank_wolfe_mean_variance`** + **`_fw_gamma_quadratic`** | **Frank–Wolfe**: linearize at \(w\), move toward simplex vertex; \(\gamma\) = exact line search on the quadratic along \([w,s]\). | **Frank, M., & Wolfe, P. (1956)**. *An algorithm for quadratic programming.* Naval Research Logistics Quarterly. Survey: **Jaggi, M. (2013)** ([arXiv:1311.2125](https://arxiv.org/abs/1311.2125)). |
+| **`slsqp_mean_variance`** | Same \(f\) + bounds + equality; **SLSQP**. | SciPy: [`minimize` SLSQP](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html). **Kraft, D. (1988)**. *A software package for sequential quadratic programming.* |
+| **`cvxpy_mean_variance`** | Disciplined convex **QP**; OSQP/SCS. | **Diamond & Boyd (2016)** — [CVXPY JMLR](https://www.jmlr.org/papers/volume17/15-408/15-408.pdf); [CVXPY docs](https://www.cvxpy.org/); [OSQP](https://osqp.org/). |
+
+You do **not** need to re-derive the simplex projection to use the baseline: treat `_project_simplex` as a standard subroutine, and read Wang (5 pages) or Duchi §3 when you want the proof.
+
+### Other baseline pieces
+
 - **Mean–variance / portfolio basics:** Markowitz, H. M. (1952). *Portfolio selection.* Journal of Finance.
 - **Shrinkage covariance:** Ledoit, O., & Wolf, M. (2004). *A well-conditioned estimator for large-dimensional covariance matrices.* Journal of Multivariate Analysis. (sklearn’s `LedoitWolf` implements a standard variant.)
-- **Frank–Wolfe / conditional gradient:** Frank, M., & Wolfe, P. (1956); see also modern surveys on FW for smooth convex optimization over polytopes.
-- **Projected gradient / proximal methods:** standard convex optimization texts (e.g. Nesterov; Combettes & Pesquet for splitting/prox — relevant if you extend to ADMM/prox in `additional_features`).
-- **Simplex projection:** classic finite algorithm (often attributed to sorting + thresholding constructions; see also Duchi et al. for related projections in learning).
-- **Convex modeling / QP:** Diamond, S., & Boyd, S. (2016). *CVXPY: A Python-embedded modeling language for convex optimization.* Journal of Machine Learning Research (see also the [CVXPY documentation](https://www.cvxpy.org/)).
+- **Proximal / splitting extensions (roadmap):** Combettes & Pesquet and similar — see `additional_features/README.md`.
 - **Software docs:** [NumPy](https://numpy.org/doc/stable/), [pandas](https://pandas.pydata.org/docs/), [scikit-learn](https://scikit-learn.org/stable/), [SciPy optimization](https://docs.scipy.org/doc/scipy/reference/optimize.html), [CVXPY](https://www.cvxpy.org/), [OSQP](https://osqp.org/).
 
 ---

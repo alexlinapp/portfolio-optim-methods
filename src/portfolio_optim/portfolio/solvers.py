@@ -1,5 +1,16 @@
 from __future__ import annotations
 
+"""
+Mean–variance weights on the probability simplex: same objective, several solvers.
+
+Problem (minimization form): minimize (γ/2) wᵀΣw − μᵀw subject to w ≥ 0, 𝟏ᵀw = 1.
+
+Citations and reading order live in the repo README under
+**“Sources and further reading → Optimization algorithms (solvers.py)”**
+(Duchi et al. §3 and Wang & Carreira-Perpiñán for simplex projection; Frank–Wolfe
+surveys for FW; SciPy/CVXPY docs for SLSQP and QP).
+"""
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -10,10 +21,16 @@ from portfolio_optim.portfolio.objectives import mean_variance_value
 
 
 def _project_simplex(v: np.ndarray) -> np.ndarray:
-    """Euclidean projection onto {x >= 0, sum x = 1}."""
+    """Closest point to v in {x >= 0, sum x = 1} (Euclidean distance).
+
+    Sort + threshold algorithm; see Duchi et al. (2008) §3 or Wang & Carreira-Perpiñán
+    (2013) arXiv:1309.1541. README table links the PDFs.
+    """
     n = v.size
     if n == 0:
         return v
+    
+    # reverse and sort in descending order
     u = np.sort(v)[::-1]
     cssv = np.cumsum(u)
     rho = 0
@@ -37,6 +54,7 @@ def _fw_gamma_quadratic(
     sigma: np.ndarray,
     risk_aversion: float,
 ) -> float:
+    """Best γ in [0,1] for Frank–Wolfe update w' = (1−γ)w + γs when f is quadratic."""
     u = s - w
     a = 0.5 * risk_aversion * float(u @ sigma @ u)
     if a <= 1e-16:
@@ -150,6 +168,7 @@ def projected_gradient_mean_variance(
     max_iter: int,
     step_scale: float = 0.9,
 ) -> tuple[np.ndarray, SolverTrace]:
+    """Projected gradient: w ← Π_simplex(w − η∇f(w)); η from Lipschitz of ∇f (λ_max(Σ), γ)."""
     n = mu.shape[0]
     w = np.full(n, 1.0 / n)
     evals = np.linalg.eigvalsh((sigma + sigma.T) / 2)
@@ -177,6 +196,7 @@ def frank_wolfe_mean_variance(
     *,
     max_iter: int,
 ) -> tuple[np.ndarray, SolverTrace]:
+    """Frank–Wolfe on the simplex: each step moves toward vertex argmin_s ⟨∇f(w), s⟩ (one-hot s)."""
     n = mu.shape[0]
     w = np.full(n, 1.0 / n)
 
