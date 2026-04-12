@@ -35,6 +35,7 @@ def fit_return_ElasticNet(X_train: np.ndarray, y_train: np.ndarray, alpha: float
 
 def fit_return_basic(X_train: np.ndarray, y_train: np.ndarray) -> Pipeline:
     """Ridge on scaled features — one model (used internally per asset)."""
+    print("Fitting return basics!")
     model = Pipeline(
         steps=[
             ("scale", StandardScaler()),
