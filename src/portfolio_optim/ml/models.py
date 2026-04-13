@@ -71,7 +71,8 @@ def fit_return_predictors_by_asset(
         n = int(np.sum(m))
         if n < min_train_rows:
             continue
-        models[str(asset)] = fit_return_predictor(X[m], y[m], alpha)
+        print("Fit retunr basic!")
+        models[str(asset)] = fit_return_basic(X[m], y[m])
     return models
 
 # actual returns predicted using lags from past 20 days
