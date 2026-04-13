@@ -4,7 +4,7 @@ from typing import TypeAlias
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import Ridge, Lasso, ElasticNet, LinearRegression
+from sklearn.linear_model import Ridge, ElasticNet, LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -23,7 +23,7 @@ def fit_return_predictor(X_train: np.ndarray, y_train: np.ndarray, alpha: float)
     return model
 
 def fit_return_ElasticNet(X_train: np.ndarray, y_train: np.ndarray, alpha: float, l1_ratio: float = 0.5) -> Pipeline:
-    """Ridge on scaled features — one model (used internally per asset)."""
+    """Elastic Net on scaled features (optional helper for experiments)."""
     model = Pipeline(
         steps=[
             ("scale", StandardScaler()),
@@ -34,8 +34,7 @@ def fit_return_ElasticNet(X_train: np.ndarray, y_train: np.ndarray, alpha: float
     return model
 
 def fit_return_basic(X_train: np.ndarray, y_train: np.ndarray) -> Pipeline:
-    """Ridge on scaled features — one model (used internally per asset)."""
-    print("Fitting return basics!")
+    """OLS on scaled features (optional helper for experiments)."""
     model = Pipeline(
         steps=[
             ("scale", StandardScaler()),
@@ -57,7 +56,9 @@ def fit_return_predictors_by_asset(
 ) -> AssetModels:
     """
     Fit **one** Ridge pipeline per asset, using only rows whose date is in ``train_dates``.
-    Assets with fewer than ``min_train_rows`` training rows are skipped (no key in the dict).
+
+    Assets with fewer than ``min_train_rows`` training rows are omitted; prediction falls
+    back to ``default_pred`` in ``predict_returns`` / ``predict_rows_by_asset``.
     """
     if min_train_rows < 2:
         raise ValueError("min_train_rows must be >= 2 to fit Ridge.")
@@ -70,10 +71,7 @@ def fit_return_predictors_by_asset(
         n = int(np.sum(m))
         if n < min_train_rows:
             continue
-        print(f"Fitting asset: {asset}")
-        models[str(asset)] = fit_return_basic(X[m], y[m])
-        
-        # fit_return_ElasticNet(X[m], y[m], alpha, 0.5) #fit_return_predictor(X[m], y[m], alpha)
+        models[str(asset)] = fit_return_predictor(X[m], y[m], alpha)
     return models
 
 
