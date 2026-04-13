@@ -74,7 +74,7 @@ def fit_return_predictors_by_asset(
         models[str(asset)] = fit_return_predictor(X[m], y[m], alpha)
     return models
 
-
+# actual returns predicted using lags from past 20 days
 def predict_returns(
     models_by_asset: AssetModels,
     returns: pd.DataFrame,
@@ -103,6 +103,7 @@ def predict_returns(
     return pd.Series(preds, index=returns.columns, name="pred")
 
 
+# use for validation + testing, use in jupyter nb to calculate resiudals
 def predict_rows_by_asset(
     models_by_asset: AssetModels,
     X: np.ndarray,
