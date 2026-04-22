@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TypeAlias
 
 import numpy as np
@@ -9,6 +10,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 AssetModels: TypeAlias = dict[str, Pipeline]
+PerAssetModelFitter: TypeAlias = Callable[[np.ndarray, np.ndarray], Pipeline]
+MultiAssetModels: TypeAlias = dict[str, AssetModels]
 
 
 def fit_return_predictor(X_train: np.ndarray, y_train: np.ndarray, alpha: float) -> Pipeline:
@@ -71,9 +74,49 @@ def fit_return_predictors_by_asset(
         n = int(np.sum(m))
         if n < min_train_rows:
             continue
-        print("Fit retunr basic!")
-        models[str(asset)] = fit_return_basic(X[m], y[m])
+        models[str(asset)] = fit_return_predictor(X[m], y[m], alpha)
     return models
+
+
+def fit_predictors_multi_by_asset(
+    model_specs: list[tuple[str, PerAssetModelFitter]],
+    X: np.ndarray,
+    y: np.ndarray,
+    mindex: pd.MultiIndex,
+    train_dates: np.ndarray,
+    *,
+    min_train_rows: int,
+) -> MultiAssetModels:
+    """
+    Fit several model families in parallel: each spec is ``(name, fitter)`` where
+    ``fitter(X_train, y_train)`` returns a fitted ``Pipeline`` for one asset.
+
+    Returns ``{model_name: AssetModels}`` with the same semantics as
+    ``fit_return_predictors_by_asset`` per entry.
+    """
+    if min_train_rows < 2:
+        raise ValueError("min_train_rows must be >= 2.")
+    if not model_specs:
+        raise ValueError("model_specs must be non-empty.")
+    names = [n for n, _ in model_specs]
+    if len(names) != len(set(names)):
+        raise ValueError("model_specs names must be unique.")
+
+    dates = np.asarray(mindex.get_level_values("date"))
+    assets = np.asarray(mindex.get_level_values("asset"))
+    train_mask = np.isin(dates, train_dates)
+
+    out: MultiAssetModels = {name: {} for name in names}
+    for asset in np.unique(assets):
+        m = train_mask & (assets == asset)
+        n = int(np.sum(m))
+        if n < min_train_rows:
+            continue
+        Xa, ya = X[m], y[m]
+        for name, fitter in model_specs:
+            out[name][str(asset)] = fitter(Xa, ya)
+    return out
+
 
 # actual returns predicted using lags from past 20 days
 def predict_returns(
