@@ -1,6 +1,6 @@
 # Portfolio Optim
 
-This repository is an algorithm-focused baseline for return forecasting + constrained allocation with solver comparisons and convergence diagnostics.
+Algorithm-focused baseline for return forecasting + constrained allocation with solver comparisons and convergence diagnostics.
 
 ## What is implemented
 
